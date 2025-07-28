@@ -1,0 +1,12 @@
+streamlit
+google-generativeai
+PyMuPDF
+matplotlib
+fpdf
+streamlit-lottie
+firebase-admin
+pyrebase4
+streamlit-option-menu
+plotly
+pandas
+requests
