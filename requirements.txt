@@ -1,11 +1,11 @@
 streamlit
+firebase-admin==6.3.0
+pyrebase4==5.0.0
 google-generativeai
 PyMuPDF
 matplotlib
 fpdf
 streamlit-lottie
-firebase-admin
-pyrebase4
 streamlit-option-menu
 plotly
 pandas
