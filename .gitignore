@@ -1,15 +1,43 @@
-# Ignore Streamlit secrets and configuration
-.streamlit/secrets.toml
+# ✅ Streamlit config and secrets
 .streamlit/
+.streamlit/secrets.toml
 
-# Python cache and environment files
+# ✅ Python environment and cache
 __pycache__/
-*.pyc
-*.pyo
+*.py[cod]
 *.pyd
+*.pyo
+*.pyc
+*.pkl
+*.db
 .env
 venv/
 env/
 
-# System files
+# ✅ Jupyter Notebooks (if any)
+.ipynb_checkpoints/
+
+# ✅ macOS system files
 .DS_Store
+
+# ✅ VSCode or JetBrains IDE files (optional)
+.vscode/
+.idea/
+
+# ✅ System-specific metadata (Windows/macOS)
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# ✅ Logs and temp
+*.log
+*.tmp
+*.bak
+
+# ✅ Build artifacts (if any in future)
+dist/
+build/
+*.egg-info/
+
+# ✅ Firebase service account export (if you ever download it)
+firebase-adminsdk-*.json
