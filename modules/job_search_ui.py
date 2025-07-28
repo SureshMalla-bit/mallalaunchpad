@@ -1,39 +1,65 @@
-# modules/job_search_ui.py
-
 import streamlit as st
+import google.generativeai as genai
+import requests
+from bs4 import BeautifulSoup
 
 def job_search_ui():
-    """A conceptual module for a future AI-powered job search feature."""
-    st.title("🔍 Smart Job Discovery")
-    st.markdown("This is a conceptual module for a future AI-powered job search. It demonstrates the potential UI.")
-    
+    st.title("🔍 AI-Powered Job Discovery")
+    st.markdown("Find high-quality, relevant jobs based on your skills, location, and interests.")
+
+    try:
+        genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
+        model = genai.GenerativeModel("gemini-pro")
+    except Exception:
+        st.error("❌ Gemini API key missing. Please configure it in `.streamlit/secrets.toml`.")
+        return
+
     with st.form("job_search_form"):
         col1, col2 = st.columns(2)
-        role = col1.text_input("Job Role / Title", placeholder="e.g., Data Analyst")
-        location = col2.text_input("Preferred Location", placeholder="e.g., Berlin, Remote")
-        skills = st.text_area("Key Skills / Keywords (AI will use these to find the best matches)", placeholder="e.g., Python, Tableau, Figma, User Research")
-        
-        submit = st.form_submit_button("🔍 Find Jobs", use_container_width=True)
+        role = col1.text_input("🎯 Job Title", placeholder="e.g., Frontend Developer")
+        location = col2.text_input("🌍 Location", placeholder="e.g., Berlin, Remote")
+        skills = st.text_area("🛠️ Key Skills", placeholder="e.g., React, JavaScript, UI/UX, Agile")
+        submitted = st.form_submit_button("🔍 Search Jobs")
 
-    if submit:
-        with st.spinner("Searching for intelligent job matches..."):
-            # MOCK RESPONSE — In a real application, this would call an API.
-            st.success("Found 3 high-quality job listings:")
-            st.markdown("""
-            ---
-            #### 🎯 [AI Data Analyst – Berlin (Remote Option)](https://example.com/job1)
-            - **Company:** DataGenix
-            - **Why it's a match:** Strong alignment with your **Python** and **Tableau** skills.
-            - **Posted:** 2 days ago
+    if submitted and role:
+        with st.spinner("🤖 Fetching jobs and analyzing matches..."):
 
-            #### 🎯 [UI Designer – Remote Contract](https://example.com/job2)
-            - **Company:** Creatif.ai
-            - **Why it's a match:** Excellent fit for your **Figma** and **User Research** experience.
-            - **Posted:** 1 week ago
+            try:
+                # ⏳ Simulate real job data (replace with real API or scraping)
+                mock_jobs = [
+                    {
+                        "title": "React Frontend Engineer – Remote",
+                        "company": "Codeverse Inc.",
+                        "url": "https://example.com/job1",
+                        "description": "Looking for someone with React, Redux, and UX experience. Agile team."
+                    },
+                    {
+                        "title": "UI/UX Designer – Berlin Hybrid",
+                        "company": "StudioZen",
+                        "url": "https://example.com/job2",
+                        "description": "Design clean user interfaces with Figma. Bonus for React knowledge."
+                    },
+                    {
+                        "title": "Full Stack Developer – Remote (Europe)",
+                        "company": "BrightStack",
+                        "url": "https://example.com/job3",
+                        "description": "Node.js, MongoDB, React. Must love agile and design-thinking."
+                    }
+                ]
 
-            #### 🎯 [Product Manager – Berlin Hybrid](https://example.com/job3)
-            - **Company:** BoldApps GmbH
-            - **Why it's a match:** The role requires strong communication and your profile indicates experience in leading projects.
-            - **Posted:** 4 days ago
-            """)
-            st.info("⚠️ This is a demo. Real-time API integration is planned for a future version.")
+                # Gemini prompt: Match jobs to skills
+                skill_prompt = f"""
+You are a career advisor. Given the candidate's desired job role: "{role}", location: "{location}", and skills: {skills},
+analyze the following jobs and rank the top 3 matches with explanation:
+
+{mock_jobs}
+                """
+
+                response = model.generate_content(skill_prompt).text
+                st.success("✅ Top Matches Found")
+                st.markdown(response)
+
+                st.markdown("💡 *Real-time listings coming soon. Contact us to get early access.*")
+
+            except Exception as e:
+                st.error(f"⚠️ AI Matching Failed: {e}")
