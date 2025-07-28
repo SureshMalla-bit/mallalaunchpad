@@ -3,7 +3,7 @@
 import streamlit as st
 import firebase_admin
 from firebase_admin import credentials, firestore
-import pyrebase4
+import pyrebase
 import datetime
 from streamlit_option_menu import option_menu
 
@@ -24,7 +24,7 @@ try:
         st.error("GEMINI_API_KEY not found in secrets.toml. AI features will fail.")
         st.stop()
 
-    firebase = pyrebase4.initialize_app(firebase_config)
+    firebase = pyrebase.initialize_app(firebase_config)
     auth = firebase.auth()
     storage = firebase.storage()
 
