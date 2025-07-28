@@ -1,73 +1,82 @@
-# modules/job_tracker.py (Kanban UI with Firestore)
 
 import streamlit as st
-import pandas as pd
 import datetime
+from google.cloud.firestore import Client
 
-def display_kanban_board(df):
-    """Creates a visually appealing Kanban board from the job dataframe."""
-    st.subheader("📋 Your Job Application Pipeline")
+def job_tracker_pro(uid: str, db: Client):
+    st.title("🗂️ Job Application Kanban Tracker")
 
-    # Define Kanban stages and their corresponding colors
     stages = ["Wishlist", "Applied", "Interview", "Offer", "Rejected"]
-    stage_colors = {
-        "Wishlist": "#FFC107", "Applied": "#0D6EFD",
-        "Interview": "#6F42C1", "Offer": "#198754", "Rejected": "#DC3545"
-    }
+    user_jobs_ref = db.collection("users").document(uid).collection("jobs")
 
+    # Load existing jobs
+    job_docs = user_jobs_ref.stream()
+    jobs_by_stage = {stage: [] for stage in stages}
+
+    for doc in job_docs:
+        job = doc.to_dict()
+        job["id"] = doc.id
+        if job.get("stage") in jobs_by_stage:
+            jobs_by_stage[job["stage"]].append(job)
+
+    st.markdown("### 🧾 Job Board")
     cols = st.columns(len(stages))
 
-    for i, stage in enumerate(stages):
-        with cols[i]:
-            st.markdown(f'<h5 style="color:{stage_colors.get(stage, "#FAFAFA")};">{stage}</h5>', unsafe_allow_html=True)
-            
-            stage_jobs = df[df["Status"] == stage] if "Status" in df.columns else pd.DataFrame()
+    for idx, stage in enumerate(stages):
+        with cols[idx]:
+            st.subheader(f"{stage} ({len(jobs_by_stage[stage])})")
+            for job in jobs_by_stage[stage]:
+                with st.expander(f"{job['title']} @ {job['company']}", expanded=False):
+                    st.text(f"📍 {job.get('location', 'N/A')} | 🗓 {job.get('applied_date', 'N/A')}")
+                    st.text(f"🔁 Current Stage: {job.get('stage')}")
 
-            if stage_jobs.empty:
-                st.markdown("_No jobs here._")
-            else:
-                for index, job in stage_jobs.iterrows():
-                    st.markdown(
-                        f"""
-                        <div style="background-color:#262730; padding:15px; border-radius:10px; margin:10px 0; border-left: 5px solid {stage_colors.get(stage)};">
-                            <h6 style="margin:0; color:white; font-weight:bold;">{job.get('Role', 'N/A')}</h6>
-                            <p style="margin:0; font-size:14px; color:#A9A9A9;">{job.get('Company', 'N/A')}</p>
-                            <a href="{job.get('Link', '#')}" target="_blank" style="font-size:12px; color:#636AF2;">Job Link</a>
-                        </div>
-                        """,
-                        unsafe_allow_html=True
-                    )
+                    new_stage = st.selectbox("Move to stage", stages, index=stages.index(stage), key=f"stage_{job['id']}")
+                    if new_stage != job["stage"]:
+                        user_jobs_ref.document(job["id"]).update({"stage": new_stage})
+                        st.success("✅ Stage updated")
+                        st.experimental_rerun()
 
-def job_tracker_pro(uid, db):
-    """The main function for the Job Tracker Pro module."""
-    st.title("📊 Job Tracker Pro")
-    st.markdown("Track your job applications from wishlist to offer with this interactive board.")
+                    if st.checkbox("✏️ Edit this job", key=f"edit_{job['id']}"):
+                        new_title = st.text_input("Job Title", value=job["title"], key=f"title_{job['id']}")
+                        new_company = st.text_input("Company", value=job["company"], key=f"company_{job['id']}")
+                        new_location = st.text_input("Location", value=job["location"], key=f"loc_{job['id']}")
+                        new_date = st.date_input("Applied Date", value=datetime.date.fromisoformat(job["applied_date"]), key=f"date_{job['id']}")
 
-    jobs_ref = db.collection("users").document(uid).collection("jobs")
+                        if st.button("💾 Save Changes", key=f"save_{job['id']}"):
+                            user_jobs_ref.document(job["id"]).update({
+                                "title": new_title,
+                                "company": new_company,
+                                "location": new_location,
+                                "applied_date": new_date.strftime("%Y-%m-%d")
+                            })
+                            st.success("✅ Job updated")
+                            st.experimental_rerun()
 
-    with st.form("job_form", clear_on_submit=True):
-        st.subheader("➕ Add New Job Application")
-        col1, col2 = st.columns(2)
-        company = col1.text_input("Company Name")
-        role = col2.text_input("Job Role")
-        status = col1.selectbox("Application Status", ["Wishlist", "Applied", "Interview", "Offer", "Rejected"])
-        link = col2.text_input("Job Link/URL")
-        submitted = st.form_submit_button("Add to Tracker", use_container_width=True)
+                    if st.button("❌ Delete", key=f"delete_{job['id']}"):
+                        user_jobs_ref.document(job["id"]).delete()
+                        st.success("🗑️ Deleted")
+                        st.experimental_rerun()
 
-        if submitted and company and role:
-            new_job_data = {
-                "Company": company, "Role": role, "Status": status,
-                "Link": link, "AddedOn": datetime.datetime.now(datetime.timezone.utc)
+    st.markdown("---")
+    with st.form("add_job_form", clear_on_submit=True):
+        st.subheader("➕ Add New Job")
+        title = st.text_input("Job Title")
+        company = st.text_input("Company")
+        location = st.text_input("Location")
+        applied_date = st.date_input("Applied Date", datetime.date.today())
+        stage = st.selectbox("Stage", stages)
+
+        submitted = st.form_submit_button("Add Job")
+        if submitted:
+            job_data = {
+                "title": title,
+                "company": company,
+                "location": location,
+                "applied_date": applied_date.strftime("%Y-%m-%d"),
+                "stage": stage,
+                "status": "Pending",
+                "created_at": datetime.datetime.now().isoformat()
             }
-            jobs_ref.add(new_job_data)
-            st.success(f"✅ Added '{role}' at '{company}' to your tracker!")
-
-    try:
-        jobs_query = jobs_ref.order_by("AddedOn", direction="DESCENDING").stream()
-        jobs_list = [job.to_dict() for job in jobs_query]
-        
-        df = pd.DataFrame(jobs_list) if jobs_list else pd.DataFrame()
-        display_kanban_board(df)
-            
-    except Exception as e:
-        st.error(f"Failed to load job data from Firestore: {e}")
+            user_jobs_ref.add(job_data)
+            st.success("✅ Job added")
+            st.experimental_rerun()
