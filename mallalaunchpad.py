@@ -3,7 +3,7 @@
 import streamlit as st
 import firebase_admin
 from firebase_admin import credentials, firestore
-import pyrebase4 as pyrebase
+import pyrebase
 import datetime
 from streamlit_option_menu import option_menu
 
